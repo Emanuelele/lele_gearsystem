@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+    <body>
+        <audio id="gearShiftSound" src="stream/gearshift.ogg"></audio>
+        <script>
+            window.addEventListener('message', function(event) {
+                if (event.data.transactionType === 'playSound') {
+                    var audio = document.getElementById('gearShiftSound');
+                    audio.volume = event.data.transactionVolume || 0.5;
+                    audio.play();
+                }
+            });
+        </script>
+    </body>
+</html>
