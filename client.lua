@@ -6,7 +6,10 @@ local canSwitchGear
 local speed, minspeed
 
 function startVehicleThreads()
-    Citizen.CreateThread(function() 
+    Citizen.CreateThread(function()
+        --Triggeriamo l'evento per restituire la marcia corrente
+        TriggerEvent("lele_gearsystem:changeGear", formatCurrentGear())
+        
         --Contorlli sulla velocità
         while currentVehicle and IsPedInAnyVehicle(PlayerPedId(), false) do
 
@@ -203,7 +206,7 @@ function simulateGears()
         ModifyVehicleTopSpeed(currentVehicle, 1)
     end
     --Triggeriamo l'evento per restituire la marcia corrente
-    TriggerEvent("lele_gearsystem:changeGear", currentGear)
+    TriggerEvent("lele_gearsystem:changeGear", formatCurrentGear())
 end
 
 --Evitiamo di buggare il veicolo se viene stoppata o riavviata la risorsa
@@ -216,6 +219,18 @@ AddEventHandler('onResourceStop', function(resourceName)
         ModifyVehicleTopSpeed(currentVehicle, 1)
     end
 end)
+
+function formatCurrentGear()
+    local gear = nil
+    if currentGear > 0 then
+        gear = tostring(currentGear)
+    elseif currentGear == 0 then
+        gear = "R"
+    else
+        gear = "N"
+    end
+    return gear
+end
 
 --Evento per restituire la marcia corrente
 RegisterNetEvent("lele_gearsystem:changeGear", function(gear) end)
