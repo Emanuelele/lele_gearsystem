@@ -34,22 +34,6 @@ function startVehicleThreads()
                 DisableControlAction(0, 71, true)
             end
 
-            --hud di test (da rimuovere a script ultimato e mettere nell'hud tramite export)
-            if Config.gearhud then
-                drawTextFrame({
-                    msg = string.format(
-                        "Marcia: %d    Giri: %.2f   Vel min: %.2f   Vel: %.2f   Vel max: %.2f   Vel rott: %.2f",
-                        currentGear, 
-                        GetVehicleCurrentRpm(currentVehicle), 
-                        minspeed, 
-                        speed,
-                        currspeedlimit,
-                        currspeedlimit * 1.6 + 5
-                    ), 
-                    x = 0.8, 
-                    y = 0.8
-                })
-            end
             Citizen.Wait(0)
         end
         --Quando l'utente esce dal veicolo, rimposto i valori a quelli iniziali
@@ -218,6 +202,8 @@ function simulateGears()
         SetVehicleHighGear(currentVehicle, gears)
         ModifyVehicleTopSpeed(currentVehicle, 1)
     end
+    --Triggeriamo l'evento per restituire la marcia corrente
+    TriggerEvent("lele_gearsystem:changeGear", currentGear)
 end
 
 --Evitiamo di buggare il veicolo se viene stoppata o riavviata la risorsa
@@ -231,16 +217,5 @@ AddEventHandler('onResourceStop', function(resourceName)
     end
 end)
 
---Funzione per stampare l'hud
-function drawTextFrame(data)
-    SetTextFont(4)
-    SetTextScale(0.0, 0.5)
-    SetTextColour(255, 255, 255, 255)
-    SetTextDropshadow(0, 0, 0, 0, 255)
-    SetTextDropShadow()
-    SetTextOutline()
-    SetTextCentre(true)
-    SetTextEntry('STRING')
-    AddTextComponentString(data.msg)
-    DrawText(data.x, data.y)
-end
+--Evento per restituire la marcia corrente
+RegisterNetEvent("lele_gearsystem:changeGear", function(gear) end)
