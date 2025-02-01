@@ -14,8 +14,5 @@ Config.gears = {
     [9] = {7.70, 4.51, 3.22, 2.52, 2.20, 2.08, 1.73, 1.31, 0.90}
 }
 
---Abilitare l'hud (da rimuovere a script ultimato)
-Config.gearhud = true
-
 --Attesa del cambio marcia
 Config.wait = 200
