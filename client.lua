@@ -9,30 +9,43 @@ function startVehicleThreads()
     Citizen.CreateThread(function()
         --Triggeriamo l'evento per restituire la marcia corrente
         TriggerEvent("lele_gearsystem:changeGear", formatCurrentGear())
-        
+
         --Contorlli sulla velocità
         while currentVehicle and IsPedInAnyVehicle(PlayerPedId(), false) do
 
-            --Calcolo valori di controllo
+            --Calcolo valori di velocità
             speed = GetEntitySpeed(currentVehicle)
             minspeed = currspeedlimit * 0.5
 
-            --Controllo velocità troppo elevate o troppo basse
+            --Controllo delle velocità (sia troppo alte che troppo basse)
+            --Velocità troppo alta per la marcia (sei al massimo dei giri)
             if speed >= currspeedlimit then
+                --Imposto i giri motore al massimo (altrimenti non ci sarebbe sound)
                 SetVehicleCurrentRpm(currentVehicle, 0.99)
+                --Tolgo potenza al motore
                 SetVehicleCheatPowerIncrease(currentVehicle, 0.0)
+
+            --Velocità troppo bassa (escluse le prime due marce altrimenti sarebbe molto difficile guidare)
             elseif speed < minspeed and currentGear > 2 and GetVehicleCurrentRpm(currentVehicle) > 0.20 then
+                --Spengo il motore
                 SetVehicleEngineOn(currentVehicle, false, true, true)
+
+            --Marcia inserita folle
             elseif currentGear == -1 then
+                --Premo W mentre sono in folle
                 if IsControlPressed(0, 71) then
+                    --Imposto i giri motore al massimo (altrimenti non ci sarebbe sound)
                     SetVehicleCurrentRpm(currentVehicle, 0.99)
                 end
+                --Tolgo potenza al motore per simulare la frizione abbassata / folle inserita
                 SetVehicleCheatPowerIncrease(currentVehicle, 0.0)
             end
 
             --Blocco comandi indetro/avanti in base alla marcia
+            --Blocco la S per marce positive se la velocità è minore di 1ms (altrimenti non potresti frenare)
             if currentGear > 0 and speed < 1 then
                 DisableControlAction(0, 72, true)
+            --Blocco la W in retromarcia se la velocità è minore di 1ms (altrimenti non potresti frenare)
             elseif currentGear == 0 and speed < 1 then
                 DisableControlAction(0, 71, true)
             end
@@ -40,21 +53,28 @@ function startVehicleThreads()
             Citizen.Wait(0)
         end
         --Quando l'utente esce dal veicolo, rimposto i valori a quelli iniziali
+        --Valore di accelerazione
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveForce", acc)
+        --Valore di velocità massima
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveMaxFlatVel", topspeedGTA)
+        --Numero di marce
         SetVehicleHighGear(currentVehicle, gears)
+        --Trucchetto per applicare immediatamente i cambiamenti
         ModifyVehicleTopSpeed(currentVehicle, 1)
+        --Imposto il veicolo corrente a nil per evitare bug
         currentVehicle = nil
     end)
 end
 
 --Controllo quando l'utente entra in un veicolo
 AddEventHandler('gameEventTriggered', function(eventName, args)
+    --Catturo l'evento di player che entra nel veicolo
     if eventName == "CEventNetworkPlayerEnteredVehicle" then
         local playerId = args[1]
         local vehicle = args[2]
+        --Controllo che l'utente entrato nel veicolo sia il client guidatore
         if playerId == PlayerId() and GetPedInVehicleSeat(vehicle, -1) == PlayerPedId() and not currentVehicle then
-            --Inizializzo i dati e salvo i dati da ripristinare 
+            --Inizializzo i dati e salvo i dati da ripristinare poi in seguito
             currentVehicle = vehicle
             gears = GetVehicleHighGear(currentVehicle)
             topspeedGTA = GetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveMaxFlatVel")
@@ -63,6 +83,7 @@ AddEventHandler('gameEventTriggered', function(eventName, args)
             currspeedlimit = 0
             currentGear = -1
             canSwitchGear = true
+            --Starto il thread di controllo per le marce
             startVehicleThreads()
         end
     end
@@ -71,19 +92,25 @@ end)
 --Funzione per fare l'animazione del cambio marcia
 function PlayGearChangeAnimation()
     Citizen.CreateThread(function()
+        --Richiedo il dizionario dell'anim
         RequestAnimDict(animationDict)
+        --Aspetto che sia caricato
         while not HasAnimDictLoaded(animationDict) do
             Citizen.Wait(0)
         end
+        --Eseguo l'anim
         TaskPlayAnim(PlayerPedId(), animationDict, animationName, 2.5, 1.0, 100, 16, 0, false, false, false)
         Citizen.Wait(100)
+        --La stoppo dopo 100ms (altrimenti il braccio nell'anim andrebbe troppo in fuori)
         StopAnimTask(PlayerPedId(), animationDict, animationName, 1.0)
+        --Pulisco la memoria
         RemoveAnimDict(animationDict)
     end)
 end
 
 --Funzione per riprodurre il suono del cambio marcia
 function PlayGearChangeSound()
+    --Messaggio alla nui per eseguire il suono
     SendNUIMessage({
         transactionType = 'playSound',
         transactionVolume = 0.5
@@ -178,7 +205,9 @@ function simulateGears()
         local newtopspeedGTA = topspeedGTA / ratio
         local newtopspeedms = topspeedms / ratio
         --Applico i nuovi valori appena calcolati
+        --Accelerazione nuova (per la marcia corrente)
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveForce", newacc)
+        --Limite di velocità nuovo (per la marcia corrente)
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveMaxFlatVel", newtopspeedGTA)
         ModifyVehicleTopSpeed(currentVehicle, 1)
         --Aggiorno il limite di velocità per la marcia selezionata
@@ -186,11 +215,14 @@ function simulateGears()
 
         --Controllo sulla velocità per applicare danni in caso di cambio marcia non corretto
         local speed = GetEntitySpeed(currentVehicle)
+        --Calcolo della velocità di rottura e controllo della velocità corrente
         if speed >= currspeedlimit * 1.6 then 
+            --Calcolo il 10% della vita corrente del veicolo e la rimuovo
             local heal = GetVehicleEngineHealth(currentVehicle)
             heal = heal * 0.9
             SetVehicleEngineHealth(currentVehicle, heal)
-            SetVehicleEngineOn(currentVehicle, false, true, false)
+            --Spengo il motore
+            SetVehicleEngineOn(currentVehicle, false, true, true)
         end
     --Retromarcia
     elseif currentGear == 0 then
@@ -200,9 +232,13 @@ function simulateGears()
             SetVehicleEngineHealth(currentVehicle, 0)
         end
         --Applico i valori normali del veicolo
+        --Accelerazione
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveForce", acc)
+        --Velocità massima
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveMaxFlatVel", topspeedGTA)
+        --Numero di marce
         SetVehicleHighGear(currentVehicle, gears)
+        --Applico le modifiche
         ModifyVehicleTopSpeed(currentVehicle, 1)
     end
     --Triggeriamo l'evento per restituire la marcia corrente
@@ -213,13 +249,18 @@ end
 AddEventHandler('onResourceStop', function(resourceName)
     if resourceName == "lele_gearsystem" then
         --Reimporto i valori a quelli normali
+        --Accelerazione
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveForce", acc)
+        --Velocità massima
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveMaxFlatVel", topspeedGTA)
+        --Numero di marce
         SetVehicleHighGear(currentVehicle, gears)
+        --Applico le modifiche
         ModifyVehicleTopSpeed(currentVehicle, 1)
     end
 end)
 
+--Funzione per formattare le marce in stringhe
 function formatCurrentGear()
     local gear = nil
     if currentGear > 0 then
@@ -232,5 +273,5 @@ function formatCurrentGear()
     return gear
 end
 
---Evento per restituire la marcia corrente
+--Registrazione vento per restituire la marcia corrente
 RegisterNetEvent("lele_gearsystem:changeGear", function(gear) end)

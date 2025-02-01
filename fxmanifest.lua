@@ -6,15 +6,14 @@ description 'Sistema di marce manuali'
 version '1.0.0'
 
 client_scripts {
-	"client.lua",
-	"config.lua"
+	'**.lua'
 }
 
-ui_page 'index.html'
+ui_page 'ui/index.html'
 
 files {
     'stream/gearshift.ogg',
-	'index.html'
+	'ui/index.html'
 }
 
 soundfile 'stream/gearshift.ogg'
