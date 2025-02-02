@@ -7,7 +7,7 @@ local speed, minspeed
 
 function startVehicleThreads()
     Citizen.CreateThread(function()
-        --Triggeriamo l'evento per restituire la marcia corrente
+        --Triggeriamo l'evento per restituire la marcia corrente all'hud
         TriggerEvent("lele_gearsystem:changeGear", formatCurrentGear())
 
         --Contorlli sulla velocità
@@ -120,7 +120,7 @@ RegisterCommand('gearsu', function()
     --Creo il thread del cambio marcia
     Citizen.CreateThread(function()
         --logica di cambio marcia
-        if currentVehicle and currentGear < gears and canSwitchGear  then
+        if currentGear < gears and canSwitchGear  then
             canSwitchGear = false
             if currentGear == -1 then
                 currentGear = 1
@@ -145,7 +145,7 @@ RegisterCommand('geargiu', function()
     --Creo il thread del cambio marcia
     Citizen.CreateThread(function()
         --logica di cambio marcia
-        if currentVehicle and currentGear ~= 0 and canSwitchGear then
+        if currentGear ~= 0 and canSwitchGear then
             canSwitchGear = false
             if currentGear == 1 then
                 currentGear = -1
@@ -169,7 +169,7 @@ RegisterCommand('gearfolle', function()
     if not currentVehicle or not IsPedInAnyVehicle(PlayerPedId(), false) then return end
     --Creo il thread del cambio marcia
     Citizen.CreateThread(function()
-        if currentVehicle and currentGear ~= 0 and canSwitchGear then
+        if currentGear ~= -1 and canSwitchGear then
             canSwitchGear = false
             currentGear = -1
             --Simulo il cambio marcia
