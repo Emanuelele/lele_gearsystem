@@ -27,8 +27,7 @@ function startVehicleThreads()
 
             --Velocità troppo bassa (escluse le prime due marce altrimenti sarebbe molto difficile guidare)
             elseif speed < minspeed and currentGear > 2 and GetVehicleCurrentRpm(currentVehicle) > 0.20 then
-                --Spengo il motore
-                SetVehicleEngineOn(currentVehicle, false, true, true)
+                TriggerServerEvent("lele_gearsystem:turnOffVehicle", currentVehicle)
 
             --Marcia inserita folle
             elseif currentGear == -1 then
@@ -53,11 +52,8 @@ function startVehicleThreads()
             Citizen.Wait(0)
         end
         --Quando l'utente esce dal veicolo, rimposto i valori a quelli iniziali
-        --Valore di accelerazione
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveForce", acc)
-        --Valore di velocità massima
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveMaxFlatVel", topspeedGTA)
-        --Numero di marce
         SetVehicleHighGear(currentVehicle, gears)
         --Trucchetto per applicare immediatamente i cambiamenti
         ModifyVehicleTopSpeed(currentVehicle, 1)
@@ -198,50 +194,49 @@ function simulateGears()
     if currentGear > 0 then
         --calcolo ratio di cambio 
         local ratio = Config.gears[gears][currentGear] * (1 / 0.9)
-        --Imposto il veicolo ad una sola marcia
+
+        --Imposto il veicolo ad una sola marcia per simulare tramite valori
         SetVehicleHighGear(currentVehicle, 1)
-        --Calcolo i valori di accelerazione e velocità
+
+        --Calcolo i nuovi valori di accelerazione e velocità
         local newacc = ratio * acc
         local newtopspeedGTA = topspeedGTA / ratio
         local newtopspeedms = topspeedms / ratio
+
         --Applico i nuovi valori appena calcolati
-        --Accelerazione nuova (per la marcia corrente)
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveForce", newacc)
-        --Limite di velocità nuovo (per la marcia corrente)
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveMaxFlatVel", newtopspeedGTA)
         ModifyVehicleTopSpeed(currentVehicle, 1)
+
         --Aggiorno il limite di velocità per la marcia selezionata
         currspeedlimit = newtopspeedms
 
         --Controllo sulla velocità per applicare danni in caso di cambio marcia non corretto
         local speed = GetEntitySpeed(currentVehicle)
+
         --Calcolo della velocità di rottura e controllo della velocità corrente
         if speed >= currspeedlimit * 1.6 then 
-            --Calcolo il 10% della vita corrente del veicolo e la rimuovo
-            local heal = GetVehicleEngineHealth(currentVehicle)
-            heal = heal * 0.9
-            SetVehicleEngineHealth(currentVehicle, heal)
-            --Spengo il motore
-            SetVehicleEngineOn(currentVehicle, false, true, true)
+            --Evento lato server in quanto i veicoli sono posseduti dal server-side. 
+            --Danno a 0.9 in quanto viene calcolato in percentuale (vita x valore) valore ad 1 lascerebbe la vita invariata
+            TriggerServerEvent("lele_gearsystem:applyEngineDamage", currentVehicle, 0.9)
         end
     --Retromarcia
     elseif currentGear == 0 then
         --Se la velocità è positiva e maggiore di 10 rompo il motore
         local speed = GetEntitySpeed(currentVehicle)
-        if speed > 10 then 
-            SetVehicleEngineHealth(currentVehicle, 0)
+        if speed > 10 then
+            --Evento lato server in quanto i veicoli sono posseduti dal server-side. 
+            --Danno a 0 in quanto viene calcolato in percentuale (vita x valore) valore ad 1 lascerebbe la vita invariata
+            TriggerServerEvent("lele_gearsystem:applyEngineDamage", currentVehicle, 0)
         end
         --Applico i valori normali del veicolo
-        --Accelerazione
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveForce", acc)
-        --Velocità massima
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveMaxFlatVel", topspeedGTA)
-        --Numero di marce
         SetVehicleHighGear(currentVehicle, gears)
         --Applico le modifiche
         ModifyVehicleTopSpeed(currentVehicle, 1)
     end
-    --Triggeriamo l'evento per restituire la marcia corrente
+    --Triggeriamo l'evento per restituire la marcia corrente all'hud
     TriggerEvent("lele_gearsystem:changeGear", formatCurrentGear())
 end
 
@@ -249,11 +244,8 @@ end
 AddEventHandler('onResourceStop', function(resourceName)
     if resourceName == "lele_gearsystem" then
         --Reimporto i valori a quelli normali
-        --Accelerazione
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveForce", acc)
-        --Velocità massima
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveMaxFlatVel", topspeedGTA)
-        --Numero di marce
         SetVehicleHighGear(currentVehicle, gears)
         --Applico le modifiche
         ModifyVehicleTopSpeed(currentVehicle, 1)

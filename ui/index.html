@@ -1,18 +1,13 @@
 <!DOCTYPE html>
 <html>
     <body>
-        <!--  Definisco il tag audio con la path da riprodurre  -->
         <audio id="gearShiftSound" src="stream/gearshift.ogg"></audio>
         <script>
-            //Listener di aventi message
             window.addEventListener('message', function(event) {
-                //Controllo sull'evento
                 if (event.data.transactionType === 'playSound') {
-                    //Prendo l'audio definito nel body
                     var audio = document.getElementById('gearShiftSound');
-                    //Prendo il volume dai data dell'evento, se null imposto il valore a 0.5
+                    //Prevengo valori null dall'evento
                     audio.volume = event.data.transactionVolume || 0.5;
-                    //Riproduco l'audio
                     audio.play();
                 }
             });
