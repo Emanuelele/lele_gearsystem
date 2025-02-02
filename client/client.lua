@@ -27,7 +27,7 @@ function startVehicleThreads()
 
             --Velocità troppo bassa (escluse le prime due marce altrimenti sarebbe molto difficile guidare)
             elseif speed < minspeed and currentGear > 2 and GetVehicleCurrentRpm(currentVehicle) > 0.20 then
-                TriggerServerEvent("lele_gearsystem:turnOffVehicle", currentVehicle)
+                TriggerServerEvent("lele_gearsystem:server:turnOffVehicle", currentVehicle)
 
             --Marcia inserita folle
             elseif currentGear == -1 then
@@ -218,7 +218,8 @@ function simulateGears()
         if speed >= currspeedlimit * 1.6 then 
             --Evento lato server in quanto i veicoli sono posseduti dal server-side. 
             --Danno a 0.9 in quanto viene calcolato in percentuale (vita x valore) valore ad 1 lascerebbe la vita invariata
-            TriggerServerEvent("lele_gearsystem:applyEngineDamage", currentVehicle, 0.9)
+            TriggerServerEvent("lele_gearsystem:server:applyEngineDamage", currentVehicle, 0.9)
+            TriggerServerEvent("lele_gearsystem:server:turnOffVehicle", currentVehicle)
         end
     --Retromarcia
     elseif currentGear == 0 then
@@ -227,7 +228,8 @@ function simulateGears()
         if speed > 10 then
             --Evento lato server in quanto i veicoli sono posseduti dal server-side. 
             --Danno a 0 in quanto viene calcolato in percentuale (vita x valore) valore ad 1 lascerebbe la vita invariata
-            TriggerServerEvent("lele_gearsystem:applyEngineDamage", currentVehicle, 0)
+            TriggerServerEvent("lele_gearsystem:server:applyEngineDamage", currentVehicle, 0)
+            TriggerServerEvent("lele_gearsystem:server:turnOffVehicle", currentVehicle)
         end
         --Applico i valori normali del veicolo
         SetVehicleHandlingFloat(currentVehicle, "CHandlingData", "fInitialDriveForce", acc)
@@ -265,5 +267,3 @@ function formatCurrentGear()
     return gear
 end
 
---Registrazione vento per restituire la marcia corrente
-RegisterNetEvent("lele_gearsystem:changeGear", function(gear) end)
